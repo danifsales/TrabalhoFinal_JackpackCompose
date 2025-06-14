@@ -9,10 +9,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -24,10 +31,14 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -40,9 +51,22 @@ import br.edu.utfpr.trabalhofinal.data.TipoLancamentoEnum
 import br.edu.utfpr.trabalhofinal.ui.lancamento.form.composables.FormCheckbox
 import br.edu.utfpr.trabalhofinal.ui.lancamento.form.composables.FormRadioButton
 import br.edu.utfpr.trabalhofinal.ui.lancamento.form.composables.FormTextField
+import br.edu.utfpr.trabalhofinal.ui.lancamento.form.composables.ConfirmationDialog
 import br.edu.utfpr.trabalhofinal.ui.theme.TrabalhoFinalTheme
 import br.edu.utfpr.trabalhofinal.ui.utils.composables.Carregando
 import br.edu.utfpr.trabalhofinal.ui.utils.composables.ErroAoCarregar
+import android.app.DatePickerDialog
+
+
+
+
+
+
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import br.edu.utfpr.trabalhofinal.ui.lancamento.form.composables.FormDatePicker
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 
 @Composable
 fun FormularioLancamentoScreen(
@@ -87,7 +111,7 @@ fun FormularioLancamentoScreen(
                     processando = viewModel.state.salvando || viewModel.state.excluindo,
                     onVoltarPressed = onVoltarPressed,
                     onSalvarPressed = viewModel::salvarLancamento,
-                    onExcluirPressed = viewModel::removerLancamento
+                    onExcluirPressed = { showConfirmationDialog = true }
                 )
             }
         ) { paddingValues ->
@@ -215,7 +239,7 @@ private fun FormContent(
 ) {
     Column(
         modifier = modifier
-            .padding(all = 16.dp)
+            .padding(all = 16.dp, vertical = 24.dp)
             .imePadding()
             .verticalScroll(rememberScrollState())
     ) {
@@ -301,7 +325,8 @@ private fun FormContent(
                 modifier = checkModifier,
                 value = TipoLancamentoEnum.DESPESA,
                 groupValue = TipoLancamentoEnum.valueOf(tipo.valor),
-                onValueChanged = { onTipoAlterado(it.toString()) },
+                onValueChanged = { newValue -> onTipoAlterado(newValue
+                    .toString()) },
                 label = stringResource(R.string.despesa),
                 enabled = !processando
             )
@@ -309,7 +334,7 @@ private fun FormContent(
                 modifier = checkModifier,
                 value = TipoLancamentoEnum.RECEITA,
                 groupValue = TipoLancamentoEnum.valueOf(tipo.valor),
-                onValueChanged = { onTipoAlterado(it.toString()) },
+                onValueChanged = { newValue -> onTipoAlterado(newValue.toString()) },
                 label = stringResource(R.string.receita),
                 enabled = !processando
             )
@@ -372,7 +397,7 @@ private fun FormContentPreview() {
         FormContent(
             processando = false,
             descricao = CampoFormulario(),
-            data = CampoFormulario(),
+            data = CampoFormulario(valor = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))),
             valor = CampoFormulario(),
             paga = CampoFormulario(),
             tipo = CampoFormulario(TipoLancamentoEnum.RECEITA.toString()),

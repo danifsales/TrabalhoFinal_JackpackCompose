@@ -27,7 +27,10 @@ fun BigDecimal.formatar(): String {
     val formatter = DecimalFormat("R$#,##0.00")
     return formatter.format(this)
 }
-
+fun String.toLocalDate(): LocalDate {
+    val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+    return LocalDate.parse(this, formatter)
+}
 fun LocalDate.formatar(): String {
     val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
     return format(formatter)

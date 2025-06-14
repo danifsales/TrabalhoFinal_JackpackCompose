@@ -9,9 +9,9 @@ import br.edu.utfpr.trabalhofinal.R
 import br.edu.utfpr.trabalhofinal.data.LancamentoDatasource
 import br.edu.utfpr.trabalhofinal.data.TipoLancamentoEnum
 import br.edu.utfpr.trabalhofinal.ui.Arguments
-import java.math.BigDecimal
-import java.time.LocalDate
+import br.edu.utfpr.trabalhofinal.utils.toLocalDate
 import br.edu.utfpr.trabalhofinal.utils.formatar
+import java.math.BigDecimal
 
 class FormularioLancamentoViewModel(
     savedStateHandle: SavedStateHandle
@@ -127,23 +127,21 @@ class FormularioLancamentoViewModel(
     }
 
     fun salvarLancamento() {
-        if (formularioValido()) {
-            state = state.copy(
-                salvando = true
-            )
-            val lancamento = state.lancamento.copy(
-                descricao = state.descricao.valor,
-                data = state.data.valor.toLocalDate(),
-                valor = valorNumerico,
-                paga = state.paga.valor.toBoolean(),
-                tipo = TipoLancamentoEnum.valueOf(state.tipo.valor)
-            )
-            LancamentoDatasource.instance.salvar(lancamento)
-            state = state.copy(
+        if (!formularioValido()) return
+        val valorNumerico = state.valor.valor.replace(",", ".").toBigDecimalOrNull() ?: return
+        state = state.copy(salvando = true)
+        val lancamento = state.lancamento.copy(
+            descricao = state.descricao.valor,
+            data = state.data.valor.toLocalDate(),
+            valor = valorNumerico,
+            paga = state.paga.valor.toBoolean(),
+            tipo = TipoLancamentoEnum.valueOf(state.tipo.valor)
+        )
+        LancamentoDatasource.instance.salvar(lancamento)
+        state = state.copy(
                 salvando = false,
                 lancamentoPersistidaOuRemovida = true
-            )
-        }
+        )
     }
 
     private fun formularioValido(): Boolean {

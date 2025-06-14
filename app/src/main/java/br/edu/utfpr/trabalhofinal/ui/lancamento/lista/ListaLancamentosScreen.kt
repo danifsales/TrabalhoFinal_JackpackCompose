@@ -16,6 +16,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.ThumbUp
+import androidx.compose.material.icons.filled.ThumbDownOffAlt
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -165,39 +167,61 @@ private fun List(
 ) {
     LazyColumn(modifier = modifier) {
         items(lancamentos) { lancamento ->
-            val cor = if (lancamento.tipo == TipoLancamentoEnum.DESPESA) Color(0xFFCF5355) else Color(0xFF00984E)
-            val icone = if (lancamento.paga) Icons.Filled.ThumbUp else Icons.Filled.ThumbDownOffAlt
-            val valorFormatado = if (lancamento.tipo == TipoLancamentoEnum.DESPESA)
+            val corReceita = colorResource(id = R.color.receita)
+            val corDespesa = colorResource(id = R.color.despesa)
+            val (icon, iconColor) = if (lancamento.paga) {
+                val color = when (lancamento.tipo) {
+                    TipoLancamentoEnum.RECEITA -> corReceita
+                    TipoLancamentoEnum.DESPESA -> corDespesa
+                }
+                Icons.Filled.ThumbUp to color
+            } else {
+                val color = when (lancamento.tipo) {
+                    TipoLancamentoEnum.RECEITA -> corReceita
+                    TipoLancamentoEnum.DESPESA -> corDespesa
+                }
+                Icons.Filled.ThumbDownOffAlt to color
+            }
+            val valorFormatado = if (lancamento.tipo == TipoLancamentoEnum.DESPESA) {
                 "-${lancamento.valor.formatar()}"
-            else
+            } else {
                 lancamento.valor.formatar()
+            }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onLancamentoPressed(lancamento) }
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = icone,
-                    contentDescription = null,
-                    tint = cor,
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = lancamento.descricao)
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(text = lancamento.data.formatar())
-                        Text(text = valorFormatado, color = cor)
+            val valorCor = when (lancamento.tipo) {
+                TipoLancamentoEnum.RECEITA -> corReceita
+                TipoLancamentoEnum.DESPESA -> corDespesa
+            }
+            ListItem(
+                modifier = Modifier.clickable { onLancamentoPressed(lancamento) },
+                leadingContent = {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = if (lancamento.paga) "Pago" else "Pendente",
+                        tint = iconColor
+                    )
+                },
+                headlineContent = {
+                    Column {
+                        Text(
+                            text = lancamento.descricao,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                            )
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = lancamento.data.formatar())
+                            Text(
+                                text = valorFormatado,
+                                color = valorCor
+                            )
+                        }
                     }
                 }
-            }
+            )
         }
     }
 }
@@ -218,9 +242,20 @@ private fun BottomBar(
     modifier: Modifier = Modifier,
     lancamentos: List<Lancamento>
 ) {
-
     val saldo = lancamentos.calcularSaldo()
     val previsao = lancamentos.calcularProjecao()
+    val corReceita = colorResource(id = R.color.previsaoG)
+    val corDespesa = colorResource(id = R.color.previsaoR)
+    val saldoColor = when {
+        saldo > BigDecimal.ZERO -> corReceita
+        saldo < BigDecimal.ZERO -> corDespesa
+        else -> MaterialTheme.colorScheme.secondary
+    }
+    val previsaoColor = when {
+        previsao > BigDecimal.ZERO -> corReceita
+        previsao < BigDecimal.ZERO -> corDespesa
+        else -> MaterialTheme.colorScheme.secondary
+    }
 
     Column(
         modifier = modifier
@@ -231,32 +266,27 @@ private fun BottomBar(
             modifier = Modifier.padding(top = 20.dp),
             titulo = stringResource(R.string.saldo),
             valor = saldo,
-            tipo = if (saldo < BigDecimal.ZERO) TipoLancamentoEnum.DESPESA else TipoLancamentoEnum.RECEITA
+            MaterialTheme.colorScheme.secondary.also { tituloColor = it },
+            var valorColor : Object ? = saldoColor
         )
         Totalizador(
             modifier = Modifier.padding(bottom = 20.dp),
             titulo = stringResource(R.string.previsao),
             valor = previsao,
-            tipo = if (previsao < BigDecimal.ZERO) TipoLancamentoEnum.DESPESA else TipoLancamentoEnum.RECEITA
+            MaterialTheme.colorScheme.secondary.also { tituloColor = it },
+            var valorColor : Object ? = previsaoColor
         )
-
     }
 }
 
 @Composable
-
 fun Totalizador(
     modifier: Modifier = Modifier,
     titulo: String,
     valor: BigDecimal,
-    tipo: TipoLancamentoEnum
+    tituloColor: Color,
+    valorColor: Color
 ) {
-
-    val cor = if (tipo == TipoLancamentoEnum.DESPESA) Color(0xFFCF5355) else Color(0xFF00984E)
-    val valorFormatado = if (tipo == TipoLancamentoEnum.DESPESA)
-        "-${valor.abs().formatar()}"
-    else
-        valor.formatar()
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -266,28 +296,16 @@ fun Totalizador(
             modifier = Modifier.weight(1f),
             textAlign = TextAlign.End,
             text = titulo,
-            color = cor
+            color = tituloColor
         )
         Spacer(Modifier.size(10.dp))
         Text(
             modifier = Modifier.width(100.dp),
             textAlign = TextAlign.End,
-            text = valorFormatado,
-            color = cor
+            valor.formatar().also { text = it },
+            var color : Object ? = valorColor
         )
-
         Spacer(Modifier.size(20.dp))
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun ListaPreview() {
-    TrabalhoFinalTheme {
-        List(
-            lancamentos = gerarLancamentos(),
-            onLancamentoPressed = {}
-        )
     }
 }
 
